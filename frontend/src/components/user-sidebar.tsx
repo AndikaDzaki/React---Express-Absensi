@@ -1,57 +1,77 @@
-import { Calendar, Home, LogOut, Users, User, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Calendar, Home, LogOut, Users, Loader2 } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import logoSD from "@/assets/logo-sd.png";
 
-const items = [
-  { title: "Dashboard", url: "/user/dashboard", Icon: Home },
-  { title: "Jadwal Absensi", url: "/user/jadwaluser", Icon: Calendar },
-  { title: "Absensi", url: "/user/absensiuser", Icon: Users },
-  { title: "Rekap Absensi", url: "/user/rekapabsensi", Icon: Calendar },
-  { title: "Profile", url: "/user/profile", Icon: User },
-  { title: "Logout", url: "/", Icon: LogOut },
+const userItems = [
+  { title: "Dashboard", url: "/user/dashboard", icon: Home },
+  { title: "Absensi", url: "/user/absensiuser", icon: Users },
+  { title: "Rekap Absensi", url: "/user/rekapabsensi", icon: Calendar },
+  { title: "Logout", url: "/", icon: LogOut },
 ];
 
-function UserSidebar() {
+export default function UserSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
-  const [activeItem, setActiveItem] = useState<string | null>(null);
+  const location = useLocation();
+  const [loadingTitle, setLoadingTitle] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleNavigation = async (title: string, url: string) => {
-    setActiveItem(title);
-    await new Promise((res) => setTimeout(res, 500));
-    navigate(url);
-    setActiveItem(null);
+  useEffect(() => {
+    setLoadingTitle(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [location.pathname]);
+
+  const handleNavigation = (title: string, url: string) => {
+    if (url === "/") {
+      setLoggingOut(true);
+      setLoadingTitle(title);
+      setTimeout(() => {
+        sessionStorage.clear();
+        setLoggingOut(false);
+        navigate("/");
+        onNavigate?.();
+      }, 700);
+    } else if (location.pathname !== url) {
+      setLoadingTitle(title);
+      setTimeout(() => {
+        navigate(url);
+        onNavigate?.();
+      }, 400);
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      onNavigate?.();
+    }
   };
 
+  const isActive = (url: string) => location.pathname === url;
+
   return (
-    <aside className="w-64 bg-primary border-r border-border min-h-screen p-6 shadow-lg rounded-r-3xl">
+    <aside className="w-60 h-full bg-primary border-r border-border p-4 shadow-lg rounded-r-2xl">
       <div className="flex items-center mb-2 px-1">
-        <img src="/src/assets/logo-sd.png" alt="Logo Sekolah" className="w-20 h-20 object-contain" />
+        <img src={logoSD} alt="Logo Sekolah" className="w-20 h-20 object-contain" />
         <h2 className="text-sm text-foreground uppercase font-bold tracking-wide">E-Presensi</h2>
       </div>
-      <nav className="space-y-3">
-        {items.map(({ title, url, Icon }) => {
-          const isActive = activeItem === title;
 
-          return (
-            <button
-              key={title}
-              onClick={() => handleNavigation(title, url)}
-              disabled={isActive}
-              className={`w-full flex items-center justify-between px-4 py-3 text-left rounded-xl transition-all duration-300 shadow-sm ${
-                isActive ? "bg-black/10 text-black ring-2 ring-primary" : "bg-muted hover:bg-muted/80 text-muted-foreground"
-              } cursor-pointer`}
-            >
-              <div className="flex items-center gap-4">
-                <Icon className="h-5 w-5" />
-                <span className="text-sm font-medium">{title}</span>
-              </div>
-              {isActive && <Loader2 className="h-4 w-4 animate-spin text-black" />}
-            </button>
-          );
-        })}
+      <nav className="space-y-3 mt-4">
+        {userItems.map((item) => (
+          <button
+            key={item.title}
+            onClick={() => handleNavigation(item.title, item.url)}
+            disabled={loadingTitle === item.title}
+            className={`w-full flex items-center justify-between px-4 py-3 text-left rounded-xl transition-all duration-300 shadow-sm
+              ${isActive(item.url) ? "bg-black/10 text-black ring-2 ring-primary" : "bg-muted hover:bg-muted/80 text-muted-foreground"}
+              cursor-pointer`}
+          >
+            <div className="flex items-center gap-4">
+              <item.icon className="h-5 w-5" />
+              <span className="text-sm font-medium">{item.title}</span>
+            </div>
+            {(item.title === "Logout" && loggingOut) || loadingTitle === item.title ? (
+              <Loader2 className="h-4 w-4 animate-spin text-black" />
+            ) : null}
+          </button>
+        ))}
       </nav>
     </aside>
   );
 }
-
-export default UserSidebar;

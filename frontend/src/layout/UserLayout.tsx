@@ -1,17 +1,15 @@
+import ResponsiveSidebar from "@/components/ResponsiveSidebar";
 import UserSidebar from "@/components/user-sidebar";
-import Navbar from "@/components/navbar";
+import NavbarUser from "@/components/navbarUser";
 import { Outlet } from "react-router-dom";
-// import CardUser from "@/components/card-user";
+import { Toaster } from "sonner";
 
 export default function UserLayout() {
   return (
-    <div className="flex">
-      <UserSidebar />
-      <div className="flex-1 p-4 bg-gray-50 min-h-screen">
-        <Navbar />
-        {/* <CardUser /> */}
-        <Outlet />
-      </div>
-    </div>
+    <ResponsiveSidebar SidebarComponent={UserSidebar} title="Dashboard User">
+      <NavbarUser />
+      <Toaster richColors position="top-right" />
+      <Outlet />
+    </ResponsiveSidebar>
   );
 }

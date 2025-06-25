@@ -8,6 +8,14 @@ video {
   object-fit: cover !important;
   background: black; 
 }
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
+
 
 @custom-variant dark (&:is(.dark *));
 

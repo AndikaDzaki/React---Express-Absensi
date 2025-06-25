@@ -1,3 +1,4 @@
+import logoSD from "@/assets/logo-sd.png";
 import { Calendar, Home, LogOut, Users, FileText, User, Loader2, ChevronDown, ChevronUp, Database, CalendarCheck, GraduationCap, QrCode } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -25,7 +26,7 @@ const adminItems = [
   { title: "Logout", url: "/", icon: LogOut },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [loadingTitle, setLoadingTitle] = useState<string | null>(null);
@@ -37,15 +38,14 @@ export function AppSidebar() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
 
-  // ✅ Tambahkan fungsi logout
   const handleLogout = () => {
     setLoggingOut(true);
     setLoadingTitle("Logout");
-
     setTimeout(() => {
       sessionStorage.clear();
       setLoggingOut(false);
       navigate("/");
+      onNavigate?.();
     }, 700);
   };
 
@@ -54,18 +54,20 @@ export function AppSidebar() {
       setLoadingTitle(title);
       setTimeout(() => {
         navigate(url);
-      }, 500);
+        onNavigate?.();
+      }, 400);
     } else {
       window.scrollTo({ top: 0, behavior: "smooth" });
+      onNavigate?.();
     }
   };
 
   const isActive = (url: string) => location.pathname === url;
 
   return (
-    <aside className="w-60 bg-primary border-r border-border min-h-screen p-4 shadow-lg rounded-r-2xl">
+    <aside className="w-60 h-full bg-primary border-r border-border min-h-screen p-4 shadow-lg rounded-r-2xl overflow-y-auto scrollbar-none">
       <div className="flex items-center mb-2 px-1">
-        <img src="/src/assets/logo-sd.png" alt="Logo Sekolah" className="w-20 h-20 object-contain" />
+      <img src={logoSD} alt="Logo Sekolah" className="w-20 h-20 object-contain" />
         <h2 className="text-sm text-foreground uppercase font-bold tracking-wide">E-Presensi</h2>
       </div>
 
@@ -87,7 +89,6 @@ export function AppSidebar() {
         ))}
       </nav>
 
-      {/* Admin Section */}
       <div className="mt-8">
         <p className="text-xs uppercase font-semibold mb-3 pl-4 tracking-wide bg-primary">Administrasi</p>
 
@@ -129,7 +130,6 @@ export function AppSidebar() {
                   )}
                 </button>
 
-                {/* Dropdown Items */}
                 {isDropdown && isOpen && (
                   <div className="pl-2 mt-2 pr-3 space-y-2">
                     {item.children.map((child) => (

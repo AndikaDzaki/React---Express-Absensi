@@ -1,25 +1,21 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, LogOut } from "lucide-react";
+import {  Bell, LogOut } from "lucide-react";
 
 const unreadNotifications = 1;
 
 const pageTitles: { [key: string]: string } = {
-  "/dashboard": "Selamat Datang Di Website Absensi!",
-  "/datasiswa": "Halaman Data Siswa",
-  "/dataguru": "Halaman Data Guru",
-  "/absensi": "Halaman Absensi",
-  "/datajadwal": "Halaman Data Jadwal",
-  "/datakelas": "Halaman Data Kelas",
-  "/rekap": "Halaman Rekap Absensi",
-  "/notifikasi": "Halaman Notifikasi",
-  "/settings": "Pengaturan",
-  "/datatahunajaran": "Halaman Tahun Ajaran",
-  "/datasemester": "Halaman Semester",
+  "/user/dashboard": "Selamat Datang Di Website Absensi",
+  "/user/jadwaluser": "Halaman Jadwal Absensi",
+  "/user/absensiuser": "Halaman Absensi",
+  "/user/rekapabsensi": "Halaman Rekap Absensi",
+  "/user/profile": "Halaman Profile",
+  "/user/halamanabsensi": "Halaman Absensi Guru",
+  "/generateqrcode": "Halaman Generate Qr Code",
 };
 
-export default function Navbar() {
+export default function NavbarUser() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
@@ -41,7 +37,7 @@ export default function Navbar() {
       <div className="bg-primary text-black rounded-xl shadow-md px-6 py-4 flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold">{title}</h1>
-          {currentPath === "/dashboard" && <p className="text-sm opacity-80">Sekolah Dasar Negeri Uwung Jaya</p>}
+          {currentPath === "/user/dashboard" && <p className="text-sm opacity-80">Sekolah Dasar Negeri Uwung Jaya</p>}
         </div>
 
         <div className="flex items-center gap-4">
