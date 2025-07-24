@@ -31,6 +31,7 @@ function DataSiswa() {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [keyword, setKeyword] = useState("");
+  const [selectedKelas, setSelectedKelas] = useState<"all" | number>("all");
 
   const form = useForm<SiswaForm>({
     resolver: zodResolver(siswaSchema),
@@ -71,7 +72,7 @@ function DataSiswa() {
   };
 
   const filteredData = searchByKeyword(
-    data.map((d) => ({ ...d, nama_kelas: getNamaKelas(d.id_kelas) })),
+    data.map((d) => ({ ...d, nama_kelas: getNamaKelas(d.id_kelas) })).filter((d) => selectedKelas === "all" || d.id_kelas === selectedKelas),
     keyword,
     ["nama", "nisn", "nama_kelas", "noTelp"]
   );
@@ -214,7 +215,6 @@ function DataSiswa() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="noTelp"
@@ -237,7 +237,18 @@ function DataSiswa() {
         </DialogContent>
       </Dialog>
 
-      <SearchBar value={keyword} onChange={setKeyword} placeholder="Cari siswa..." />
+     
+      <div className="flex items-center justify-between my-4">
+        <SearchBar value={keyword} onChange={setKeyword} placeholder="Cari siswa..." />
+        <select value={selectedKelas} onChange={(e) => setSelectedKelas(e.target.value === "all" ? "all" : Number(e.target.value))} className="border rounded px-3 py-2">
+          <option value="all">Semua Kelas</option>
+          {kelasList.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.nama_kelas}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <Table>
         <TableCaption>Daftar Siswa</TableCaption>

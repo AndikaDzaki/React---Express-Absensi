@@ -2,15 +2,35 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import ActionButtons from "@/components/ActionButtons";
 import { jadwalSchema, JadwalForm } from "@/schema/jadwalAdmin";
-import { getJadwal, addJadwal, updateJadwal, deleteJadwal } from "@/lib/jadwal-api";
+import {
+  getJadwal,
+  addJadwal,
+  updateJadwal,
+  deleteJadwal,
+} from "@/lib/jadwal-api";
 import { getGuru } from "@/lib/Api";
 import { getKelas } from "@/lib/kelas-api";
 
@@ -41,6 +61,7 @@ const DataJadwal = () => {
   const [liburList, setLiburList] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [selectedKelas, setSelectedKelas] = useState<string | number>("all");
 
   const {
     register,
@@ -61,7 +82,11 @@ const DataJadwal = () => {
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const [jadwalRes, guruRes, kelasRes] = await Promise.all([getJadwal(), getGuru(), getKelas()]);
+        const [jadwalRes, guruRes, kelasRes] = await Promise.all([
+          getJadwal(),
+          getGuru(),
+          getKelas(),
+        ]);
         setJadwalList(jadwalRes.data);
         setGuruList(guruRes.data);
         setKelasList(kelasRes.data);
@@ -138,8 +163,15 @@ const DataJadwal = () => {
     }
   };
 
-  const getGuruLabel = (id: number) => guruList.find((g) => g.id === id)?.namaGuru || "Tidak Diketahui";
-  const getKelasLabel = (id: number) => kelasList.find((k) => k.id === id)?.nama_kelas || "Tidak Diketahui";
+  const getGuruLabel = (id: number) =>
+    guruList.find((g) => g.id === id)?.namaGuru || "Tidak Diketahui";
+  const getKelasLabel = (id: number) =>
+    kelasList.find((k) => k.id === id)?.nama_kelas || "Tidak Diketahui";
+
+  const filteredList =
+    selectedKelas === "all"
+      ? jadwalList
+      : jadwalList.filter((j) => j.id_kelas === selectedKelas);
 
   return (
     <div className="bg-white p-5 rounded-lg shadow-md mt-6 ml-10 mr-10">
@@ -163,7 +195,10 @@ const DataJadwal = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
               <Label>Guru</Label>
-              <select {...register("id_guru", { valueAsNumber: true })} className="w-full border rounded px-3 py-2">
+              <select
+                {...register("id_guru", { valueAsNumber: true })}
+                className="w-full border rounded px-3 py-2"
+              >
                 <option value={0}>-- Pilih Guru --</option>
                 {guruList.map((g) => (
                   <option key={g.id} value={g.id}>
@@ -171,10 +206,15 @@ const DataJadwal = () => {
                   </option>
                 ))}
               </select>
-              {errors.id_guru && <p className="text-red-500 text-sm">{errors.id_guru.message}</p>}
+              {errors.id_guru && (
+                <p className="text-red-500 text-sm">{errors.id_guru.message}</p>
+              )}
 
               <Label>Kelas</Label>
-              <select {...register("id_kelas", { valueAsNumber: true })} className="w-full border rounded px-3 py-2">
+              <select
+                {...register("id_kelas", { valueAsNumber: true })}
+                className="w-full border rounded px-3 py-2"
+              >
                 <option value={0}>-- Pilih Kelas --</option>
                 {kelasList.map((k) => (
                   <option key={k.id} value={k.id}>
@@ -182,19 +222,27 @@ const DataJadwal = () => {
                   </option>
                 ))}
               </select>
-              {errors.id_kelas && <p className="text-red-500 text-sm">{errors.id_kelas.message}</p>}
+              {errors.id_kelas && (
+                <p className="text-red-500 text-sm">{errors.id_kelas.message}</p>
+              )}
 
               <Label>Tanggal</Label>
               <Input type="date" {...register("tanggal" as const)} />
-              {errors.tanggal && <p className="text-red-500 text-sm">{errors.tanggal.message}</p>}
+              {errors.tanggal && (
+                <p className="text-red-500 text-sm">{errors.tanggal.message}</p>
+              )}
 
               <Label>Jam Mulai</Label>
               <Input placeholder="HH:mm" {...register("jam_mulai" as const)} />
-              {errors.jam_mulai && <p className="text-red-500 text-sm">{errors.jam_mulai.message}</p>}
+              {errors.jam_mulai && (
+                <p className="text-red-500 text-sm">{errors.jam_mulai.message}</p>
+              )}
 
               <Label>Jam Selesai</Label>
               <Input placeholder="HH:mm" {...register("jam_selesai" as const)} />
-              {errors.jam_selesai && <p className="text-red-500 text-sm">{errors.jam_selesai.message}</p>}
+              {errors.jam_selesai && (
+                <p className="text-red-500 text-sm">{errors.jam_selesai.message}</p>
+              )}
 
               <Button className="mt-2 w-full" type="submit">
                 {editId ? "Simpan Perubahan" : "Tambah"}
@@ -202,6 +250,27 @@ const DataJadwal = () => {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+     
+      <div className="my-4">
+        
+        <select
+          value={selectedKelas}
+          onChange={(e) =>
+            setSelectedKelas(
+              e.target.value === "all" ? "all" : Number(e.target.value)
+            )
+          }
+          className="border rounded px-3 py-2"
+        >
+          <option value="all">Semua Kelas</option>
+          {kelasList.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.nama_kelas}
+            </option>
+          ))}
+        </select>
       </div>
 
       <Table>
@@ -217,12 +286,12 @@ const DataJadwal = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jadwalList.length === 0 ? (
+          {filteredList.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6}>Belum ada data</TableCell>
             </TableRow>
           ) : (
-            jadwalList.map((item) => (
+            filteredList.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>{getGuruLabel(item.id_guru)}</TableCell>
                 <TableCell>{getKelasLabel(item.id_kelas)}</TableCell>
@@ -230,7 +299,10 @@ const DataJadwal = () => {
                 <TableCell>{item.jam_mulai}</TableCell>
                 <TableCell>{item.jam_selesai}</TableCell>
                 <TableCell>
-                  <ActionButtons onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item.id)} />
+                  <ActionButtons
+                    onEdit={() => handleEdit(item)}
+                    onDelete={() => handleDelete(item.id)}
+                  />
                 </TableCell>
               </TableRow>
             ))

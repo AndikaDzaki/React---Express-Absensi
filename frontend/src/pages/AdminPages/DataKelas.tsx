@@ -44,6 +44,7 @@ function DataKelas() {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [keyword, setKeyword] = useState("");
+  const [selectedKelas, setSelectedKelas] = useState<"all" | number>("all");
 
   const form = useForm<KelasFormData>({
     resolver: zodResolver(kelasSchema),
@@ -90,7 +91,9 @@ function DataKelas() {
     fetchGuru();
   }, []);
 
-  const filteredData = searchByKeyword(data, keyword, ["nama_kelas", "namaGuru"]);
+  const filteredData = searchByKeyword(data, keyword, ["nama_kelas", "namaGuru"]).filter((item) =>
+    selectedKelas === "all" ? true : item.id === selectedKelas
+  );
 
   const onSubmit = async (values: KelasFormData) => {
     try {
@@ -207,7 +210,24 @@ function DataKelas() {
         </Dialog>
       </div>
 
-      <SearchBar key="kelas-search" value={keyword} onChange={setKeyword} placeholder="Cari kelas atau nama wali kelas..." />
+    
+      <div className="flex items-center justify-between my-4 ">
+        <SearchBar key="kelas-search" value={keyword} onChange={setKeyword} placeholder="Cari kelas atau nama wali kelas..." />
+        <select
+          value={selectedKelas}
+          onChange={(e) =>
+            setSelectedKelas(e.target.value === "all" ? "all" : Number(e.target.value))
+          }
+          className="border rounded px-3 py-2"
+        >
+          <option value="all">Semua Kelas</option>
+          {data.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.nama_kelas}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <Table>
         <TableCaption>Daftar Kelas & Wali</TableCaption>
