@@ -1,18 +1,22 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {  Bell, LogOut } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
+import { logout } from "@/lib/auth-api";
+import { getNotifikasiUser } from "@/lib/notifikasiUser-api";
 
-const unreadNotifications = 1;
+const getGuruId = (): number | null => {
+  const id = sessionStorage.getItem("id");
+  return id ? Number(id) : null;
+};
 
 const pageTitles: { [key: string]: string } = {
   "/user/dashboard": "Selamat Datang Di Website Absensi",
   "/user/jadwaluser": "Halaman Jadwal Absensi",
   "/user/absensiuser": "Halaman Absensi",
   "/user/rekapabsensi": "Halaman Rekap Absensi",
-  "/user/profile": "Halaman Profile",
   "/user/halamanabsensi": "Halaman Absensi Guru",
-  "/generateqrcode": "Halaman Generate Qr Code",
+  "/user/notifikasiuser": "Halaman Notifikasi",
 };
 
 export default function NavbarUser() {
@@ -22,14 +26,42 @@ export default function NavbarUser() {
   const title = pageTitles[currentPath] || "Halaman";
 
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    const fetchUnread = async () => {
+      const guruId = getGuruId();
+      if (!guruId) return;
+
+      try {
+        const notifikasi = await getNotifikasiUser(guruId);
+        const belumDibaca = notifikasi.filter((n) => !n.dibaca);
+        setUnreadCount(belumDibaca.length);
+      } catch (err) {
+        console.error("Gagal fetch notifikasi user:", err);
+      }
+    };
+
+    fetchUnread();
+  }, []);
+
+  const handleLogout = async () => {
     setLoggingOut(true);
-    setTimeout(() => {
-      sessionStorage.clear();
-      setLoggingOut(false);
-      navigate("/");
-    }, 700);
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Gagal logout:", err);
+    }
+
+    sessionStorage.clear();
+    setLoggingOut(false);
+    navigate("/", { replace: true });
+  };
+
+  const handleOpenNotification = () => {
+    navigate("/user/notifikasiuser");
+
+    setUnreadCount(0);
   };
 
   return (
@@ -41,9 +73,9 @@ export default function NavbarUser() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate("/notifikasi")} className="relative text-gray-700 hover:opacity-80 transition">
+          <button onClick={handleOpenNotification} className="relative text-gray-700 hover:opacity-80 transition">
             <Bell className="w-6 h-6" />
-            {unreadNotifications > 0 && <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{unreadNotifications}</span>}
+            {unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{unreadCount}</span>}
           </button>
 
           <button onClick={handleLogout} className="text-gray-700 hover:opacity-80 transition" disabled={loggingOut}>

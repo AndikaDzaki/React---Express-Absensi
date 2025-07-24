@@ -1,7 +1,9 @@
-import logoSD from "@/assets/logo-sd.png";
-import { Calendar, Home, LogOut, Users, FileText, User, Loader2, ChevronDown, ChevronUp, Database, CalendarCheck, GraduationCap, QrCode } from "lucide-react";
+import { Home, Users, Calendar, User, FileText, CalendarCheck, GraduationCap, QrCode, Database, LogOut, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { logout } from "@/lib/auth-api";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import logoSD from "@/assets/logo-sd.png";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -33,21 +35,12 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
+  const isActive = (url: string) => location.pathname === url;
+
   useEffect(() => {
     setLoadingTitle(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
-
-  const handleLogout = () => {
-    setLoggingOut(true);
-    setLoadingTitle("Logout");
-    setTimeout(() => {
-      sessionStorage.clear();
-      setLoggingOut(false);
-      navigate("/");
-      onNavigate?.();
-    }, 700);
-  };
 
   const handleNavigation = (title: string, url: string) => {
     if (location.pathname !== url) {
@@ -62,43 +55,55 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
     }
   };
 
-  const isActive = (url: string) => location.pathname === url;
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Gagal logout:", err);
+    }
+    sessionStorage.clear();
+    setLoggingOut(false);
+    navigate("/", { replace: true });
+  };
 
   return (
-    <aside className="w-60 h-full bg-primary border-r border-border min-h-screen p-4 shadow-lg rounded-r-2xl overflow-y-auto scrollbar-none">
-      <div className="flex items-center mb-2 px-1">
-      <img src={logoSD} alt="Logo Sekolah" className="w-20 h-20 object-contain" />
-        <h2 className="text-sm text-foreground uppercase font-bold tracking-wide">E-Presensi</h2>
-      </div>
+    <div className="w-60 h-full border-r bg-primary min-h-screen shadow-lg rounded-r-2xl">
+      <ScrollArea className="h-full p-4">
+        <div className="flex flex-col items-center mb-6 gap-2">
+          <img src={logoSD} alt="Logo SD" className="w-25 h-25 object-contain" />
+          <h2 className="text-sm text-black font-bold uppercase tracking-wide">E-Presensi</h2>
+        </div>
 
-      <nav className="space-y-3">
-        {mainItems.map((item) => (
-          <button
-            key={item.title}
-            onClick={() => handleNavigation(item.title, item.url)}
-            className={`w-full flex items-center justify-between px-4 py-3 text-left rounded-xl transition-all duration-300 shadow-sm
-              ${isActive(item.url) ? "bg-black/10 text-black ring-2 ring-primary" : "bg-muted hover:bg-muted/80 text-muted-foreground"}
-              cursor-pointer`}
-          >
-            <div className="flex items-center gap-4">
-              <item.icon className="h-5 w-5" />
-              <span className="text-sm font-medium">{item.title}</span>
-            </div>
-            {loadingTitle === item.title && <Loader2 className="h-4 w-4 animate-spin text-black" />}
-          </button>
-        ))}
-      </nav>
+        {/* MAIN ITEMS */}
+        <div className="space-y-3">
+          {mainItems.map((item) => (
+            <button
+              key={item.title}
+              onClick={() => handleNavigation(item.title, item.url)}
+              className={`w-full flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium transition-all bg-accent-foreground cursor-pointer
+              ${isActive(item.url) ? "bg-white/20 text-black ring-1 ring-white" : "text-black hover:bg-white/10"}`}
+            >
+              <div className="flex items-center gap-3 bg-w">
+                <item.icon className="h-5 w-5" />
+                {item.title}
+              </div>
+              {loadingTitle === item.title && <Loader2 className="h-4 w-4 animate-spin text-white" />}
+            </button>
+          ))}
+        </div>
 
-      <div className="mt-8">
-        <p className="text-xs uppercase font-semibold mb-3 pl-4 tracking-wide bg-primary">Administrasi</p>
+        {/* ADMIN TITLE */}
+        <div className="mt-6 px-4 text-xs text-white font-semibold uppercase tracking-wide">Administrasi</div>
 
-        <nav className="space-y-3">
+        {/* ADMIN ITEMS */}
+        <div className="space-y-3 mt-2">
           {adminItems.map((item) => {
             const isDropdown = item.children && item.children.length > 0;
             const isOpen = openDropdown === item.title;
 
             return (
-              <div key={item.title}>
+              <div key={item.title} className="space-y-3">
                 <button
                   onClick={() => {
                     if (item.title === "Logout") {
@@ -109,39 +114,39 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                       handleNavigation(item.title, item.url!);
                     }
                   }}
-                  className={`w-full flex items-center justify-between px-4 py-3 text-left rounded-xl transition-all duration-300 shadow-sm
-                    ${item.url && isActive(item.url) ? "bg-black/10 text-black ring-2 ring-primary" : "bg-muted hover:bg-muted/80 text-muted-foreground"}
-                    cursor-pointer`}
+                  className={`w-full flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer bg-accent-foreground
+                  ${item.url && isActive(item.url) ? "bg-white/20 text-black ring-1 ring-white" : "text-black hover:bg-white/10"}`}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <item.icon className="h-5 w-5" />
-                    <span className="text-sm font-medium">{item.title}</span>
+                    {item.title}
                   </div>
                   {item.title === "Logout" && loggingOut ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-black" />
+                    <Loader2 className="h-4 w-4 animate-spin text-white" />
                   ) : isDropdown ? (
                     isOpen ? (
-                      <ChevronUp className="w-4 h-4" />
+                      <ChevronUp className="h-4 w-4 text-black" />
                     ) : (
-                      <ChevronDown className="w-4 h-4" />
+                      <ChevronDown className="h-4 w-4 text-black" />
                     )
                   ) : (
-                    loadingTitle === item.title && <Loader2 className="h-4 w-4 animate-spin text-black" />
+                    loadingTitle === item.title && <Loader2 className="h-4 w-4 animate-spin text-white" />
                   )}
                 </button>
 
+                {/* DROPDOWN CHILDREN */}
                 {isDropdown && isOpen && (
-                  <div className="pl-2 mt-2 pr-3 space-y-2">
+                  <div className="pl-2 space-y-2">
                     {item.children.map((child) => (
                       <button
                         key={child.title}
                         onClick={() => handleNavigation(child.title, child.url!)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition cursor-pointer
-                          ${isActive(child.url) ? "bg-black/10 text-black ring-2 ring-primary" : "bg-muted hover:bg-muted/70 text-muted-foreground"}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition bg-accent-foreground cursor-pointer
+                        ${isActive(child.url) ? "bg-white/20 text-black ring-2 ring-white" : "text-black hover:bg-white/10"}`}
                       >
                         <child.icon className="h-4 w-4" />
-                        <span>{child.title}</span>
-                        {loadingTitle === child.title && <Loader2 className="h-4 w-4 animate-spin ml-auto text-black" />}
+                        {child.title}
+                        {loadingTitle === child.title && <Loader2 className="h-4 w-4 animate-spin ml-auto text-white" />}
                       </button>
                     ))}
                   </div>
@@ -149,8 +154,8 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
               </div>
             );
           })}
-        </nav>
-      </div>
-    </aside>
+        </div>
+      </ScrollArea>
+    </div>
   );
 }

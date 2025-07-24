@@ -45,7 +45,6 @@ export const createJadwal = async (req, res) => {
   }
 
   try {
-    
     const tanggalObj = new Date(tanggal);
     const jamMulaiObj = new Date(`${tanggal}T${jam_mulai}:00`);
     const jamSelesaiObj = new Date(`${tanggal}T${jam_selesai}:00`);
@@ -159,21 +158,20 @@ export const deleteJadwal = async (req, res) => {
 export const getJadwalGuru = async (req, res) => {
   const guruId = req.user.id;
 
-  const today = new Date();
-  const todayStart = new Date(today.toISOString().split("T")[0] + "T00:00:00");
-  const todayEnd = new Date(today.toISOString().split("T")[0] + "T23:59:59");
-
   try {
     const jadwal = await prisma.jadwal.findMany({
       where: {
-        id_guru: guruId,
-        tanggal: { gte: todayStart, lte: todayEnd },
+        kelas: {
+          id_guru: guruId,
+        },
       },
       include: {
-        kelas: { select: { nama_kelas: true } },
+        kelas: {
+          select: { nama_kelas: true },
+        },
       },
       orderBy: {
-        jam_mulai: "asc",
+        tanggal: "asc",
       },
     });
 
@@ -186,9 +184,13 @@ export const getJadwalGuru = async (req, res) => {
       kelas: row.kelas,
     }));
 
-    res.json({ tanggal: formatTanggalOnly(todayStart), jadwal: formatted });
+    res.json({ jadwal: formatted });
   } catch (err) {
-    res.status(500).json({ message: "Gagal mengambil jadwal", Error: err.message });
+    console.error("Gagal mengambil jadwal guru:", err);
+    res.status(500).json({
+      message: "Gagal mengambil jadwal",
+      error: err.message,
+    });
   }
 };
 

@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { login, getMeAdmin, getMeGuru } from "@/lib/auth-api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import axios from "axios";
 
 function Login() {
   const navigate = useNavigate();
@@ -16,21 +17,54 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    sessionStorage.removeItem("isLoggedIn");
+    sessionStorage.removeItem("userRole");
+    sessionStorage.removeItem("userName");
+
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().then((permission) => {
+        console.log("Notification permission:", permission);
+      });
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    try {
-      const response = await axios.post("http://localhost:8800/api/login", { email, password }, { withCredentials: true });
+    if (!email.trim() || !password.trim()) {
+      setError("Harap isi email dan password terlebih dahulu.");
+      return;
+    }
 
-      const data = response.data;
+    try {
+      const loginRes = await login(email, password);
+      const { role } = loginRes.data;
+
+      let res;
+      if (role === "admin") {
+        res = await getMeAdmin();
+      } else {
+        res = await getMeGuru();
+      }
+
+      const data = res.data;
 
       sessionStorage.setItem("userRole", data.role);
       sessionStorage.setItem("userName", data.name);
       sessionStorage.setItem("isLoggedIn", "true");
 
-      if (data.role === "admin") {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Login Berhasil!", {
+          body: "Selamat datang kembali 👋",
+          icon: "/logo-sd.png",
+        });
+        console.log("✅ Notifikasi dikirim");
+      }
+
+      if (role === "admin") {
         navigate("/dashboard");
       } else {
         navigate("/user/dashboard");
@@ -47,12 +81,13 @@ function Login() {
 
     setLoading(false);
   };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-primary from-cyan-50 to-cyan-100">
       <Card className="w-full max-w-md shadow-lg">
         <form onSubmit={handleLogin}>
           <CardHeader className="text-center">
-            <img src="/src/assets/logo-sd.png" alt="Logo Sekolah" className="w-35 h-35 mx-auto" />
+            <img src="/logo-sd.png" alt="Logo Sekolah" className="w-36 h-36 mx-auto" />
             <CardTitle>Login</CardTitle>
             <CardDescription>Selamat Datang di Website Absensi</CardDescription>
           </CardHeader>
@@ -95,9 +130,6 @@ function Login() {
                   <input type="checkbox" className="accent-cyan-500" />
                   Ingat saya
                 </label>
-                <a href="#" className="text-cyan-600 hover:underline">
-                  Lupa password?
-                </a>
               </div>
             </div>
           </CardContent>

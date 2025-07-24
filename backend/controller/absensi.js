@@ -3,6 +3,7 @@ import { absensiSchema } from "../validations/absensiValidations.js";
 import { generateAbsensiHarianService } from "../services/absensiService.js";
 import jwt from "jsonwebtoken";
 import { io } from "../main.js";
+import { kirimWhatsapp } from "../utils/whatsapp.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "rahasia_token";
 
@@ -131,7 +132,6 @@ export const addAbsensi = async (req, res) => {
       message: "Absensi ditambahkan",
       id: created.id,
     });
-
   } catch (err) {
     res.status(400).json({ Error: err.message });
   }
@@ -208,7 +208,41 @@ export const getAbsensiByKelas = async (req, res) => {
       return res.status(403).json({ message: "Anda tidak memiliki akses ke kelas ini" });
     }
 
-    const absensi = await prisma.absensi.findMany({
+    const siswaKelas = await prisma.siswa.findMany({
+      where: {
+        id_kelas: Number(kelasId),
+      },
+    });
+
+   
+    const absensiHariIni = await prisma.absensi.findMany({
+      where: {
+        kelas_id: Number(kelasId),
+        tanggal,
+      },
+    });
+
+    
+    const siswaYangBelumAdaAbsensi = siswaKelas.filter((siswa) => {
+      return !absensiHariIni.some((abs) => abs.id_siswa === siswa.id);
+    });
+
+    
+    const absensiBaru = await Promise.all(
+      siswaYangBelumAdaAbsensi.map((siswa) =>
+        prisma.absensi.create({
+          data: {
+            id_siswa: siswa.id,
+            kelas_id: Number(kelasId),
+            tanggal,
+            status: "Belum",
+          },
+        })
+      )
+    );
+
+    
+    const absensiLengkap = await prisma.absensi.findMany({
       where: {
         kelas_id: Number(kelasId),
         tanggal,
@@ -216,30 +250,33 @@ export const getAbsensiByKelas = async (req, res) => {
       include: {
         siswa: true,
       },
+      orderBy: {
+        siswa: {
+          nama: "asc",
+        },
+      },
     });
 
-    res.json(absensi);
+    res.json(absensiLengkap);
   } catch (error) {
     console.error("Gagal mengambil absensi berdasarkan kelas:", error);
     res.status(500).json({ error: "Gagal mengambil data absensi" });
   }
 };
 
+
 export const updateBanyakAbsensi = async (req, res) => {
   const absensiArray = req.body;
-
+  const io = req.app.get("io");
 
   if (!Array.isArray(absensiArray) || absensiArray.length === 0) {
     return res.status(400).json({ message: "Data absensi kosong atau bukan array" });
   }
 
   try {
+ 
     for (const item of absensiArray) {
-      if (
-        typeof item.id_siswa !== "number" ||
-        !item.tanggal ||
-        typeof item.status !== "string"
-      ) {
+      if (typeof item.id_siswa !== "number" || !item.tanggal || typeof item.status !== "string") {
         return res.status(400).json({
           message: "Data absensi tidak valid",
           item,
@@ -261,15 +298,63 @@ export const updateBanyakAbsensi = async (req, res) => {
 
     await Promise.all(updatePromises);
 
+    for (const item of absensiArray) {
+      try{
+        const siswa = await prisma.siswa.findUnique({
+          where: {id: item.id_siswa},
+        });
+        
+        if (!siswa || !siswa.noTelp) continue;
+
+        const nomorOrtu = siswa.noTelp.replace(/\D/g, "");
+        if (!nomorOrtu.startsWith("08")) continue;
+
+        const pesan = `Anak Anda, ${siswa.nama}, telah melakukan absensi hari ini dengan status: ${item.status}.`;
+        
+        await kirimWhatsapp(nomorOrtu, pesan)
+      }catch (err){
+        console.error(`Gagal kirim WA ke siswa ID ${item.id_siswa}:`, err)
+      }
+    }
+
+    const io = req.app.get("io");
     io.emit("absensi-batch-updated", absensiArray);
 
-    res.json({ message: "Absensi berhasil diperbarui" });
+   
+    const guruId = req.user?.id;
+
+    if (!guruId) {
+      return res.status(401).json({ message: "User tidak terautentikasi" });
+    }
+
+    const [guru, kelas] = await Promise.all([prisma.guru.findUnique({ where: { id: guruId } }), prisma.kelas.findFirst({ where: { id_guru: guruId } })]);
+
+    if (!guru || !kelas) {
+      return res.status(404).json({ message: "Data guru atau kelas tidak ditemukan" });
+    }
+
+    const message = `Guru ${guru.namaGuru} telah mengisi absensi untuk kelas ${kelas.nama_kelas}`;
+    const date = new Date();
+
+    await prisma.notifikasi_admin.create({
+      data: {
+        pesan: message,
+        jenis: "absensi",
+        tanggal: date,
+        dibaca: false,
+      },
+    });
+
+    io.emit("notifikasiBaru", {
+      pesan: message, 
+      jenis: "absensi",
+      tanggal: date.toISOString(),
+      dibaca: false,
+    });
+
+    return res.json({ message: "Absensi berhasil diperbarui" });
   } catch (error) {
     console.error("Gagal update absensi:", error);
-    res.status(500).json({
-      error: "Gagal update absensi",
-      detail: error.message,
-      stack: error.stack,
-    });
+    return res.status(500).json({ message: "Gagal update absensi", error });
   }
 };

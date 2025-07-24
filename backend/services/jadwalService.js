@@ -55,7 +55,7 @@ export const generateJadwalOtomatisService = async () => {
       }
     });
 
-    await prisma.jadwal.createMany({ data: finalData });
+    await prisma.jadwal.createMany({ data: finalData, skipDuplicates: true, });
 
     console.log("Generate jadwal otomatis berhasil.");
   } catch (error) {

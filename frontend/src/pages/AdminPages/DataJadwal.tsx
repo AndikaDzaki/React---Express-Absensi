@@ -142,7 +142,7 @@ const DataJadwal = () => {
   const getKelasLabel = (id: number) => kelasList.find((k) => k.id === id)?.nama_kelas || "Tidak Diketahui";
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="bg-white p-5 rounded-lg shadow-md mt-6 ml-10 mr-10">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Data Jadwal</h2>
         <Dialog open={open} onOpenChange={setOpen}>

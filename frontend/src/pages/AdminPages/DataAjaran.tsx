@@ -171,7 +171,7 @@ export default function DataAjaran() {
   };
 
   return (
-    <div className="p-4">
+    <div className="bg-white p-5 rounded-lg shadow-md mt-6 ml-10 mr-10">
       <div className="flex justify-between mb-4">
         <h2 className="text-lg font-semibold">Tahun Ajaran</h2>
         <Button

@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { generateAbsensiHarianService } from "../services/absensiService.js";
 
 cron.schedule(
-  "10 0 * * *",
+  "0 6 * * *",
   async () => {
     const now = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
     console.log(`[CRON] Menjalankan generateAbsensiHarian pada ${now}`);

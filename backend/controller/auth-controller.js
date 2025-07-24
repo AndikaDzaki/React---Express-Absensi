@@ -4,34 +4,27 @@ import prisma from "../config/prisma.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "rahasia_token";
 
-
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-   
     if (email === "admin@example.com") {
       if (password !== "password123") {
         return res.status(401).json({ message: "Email atau password salah." });
       }
 
-      const token = jwt.sign(
-        { role: "admin", name: "Admin Sekolah" },
-        JWT_SECRET,
-        { expiresIn: "1d" }
-      );
+      const token = jwt.sign({ role: "admin", name: "Admin Sekolah" }, JWT_SECRET, { expiresIn: "1d" });
 
-      res.cookie("token", token, {
+      res.cookie("admin_token", token, {
         httpOnly: true,
-        secure: false, 
-        sameSite: "strict",
+        secure: false,
+        sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,
       });
 
       return res.json({ success: true, role: "admin", name: "Admin Sekolah" });
     }
 
-    
     const guru = await prisma.guru.findUnique({
       where: { email },
     });
@@ -45,16 +38,12 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Password salah" });
     }
 
-    const token = jwt.sign(
-      { role: "user", id: guru.id, name: guru.namaGuru },
-      JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    const token = jwt.sign({ role: "user", id: guru.id, name: guru.namaGuru }, JWT_SECRET, { expiresIn: "1d" });
 
-    res.cookie("token", token, {
+    res.cookie("guru_token", token, {
       httpOnly: true,
       secure: false,
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
@@ -65,12 +54,33 @@ export const login = async (req, res) => {
   }
 };
 
-
 export const logout = (req, res) => {
-  res.clearCookie("token", {
+  res.clearCookie("admin_token", {
     httpOnly: true,
     secure: false,
-    sameSite: "strict",
+    sameSite: "lax",
   });
+
+  res.clearCookie("guru_token", {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+  });
+
   res.json({ success: true, message: "Logout berhasil" });
+};
+
+
+export const getMe = (req, res) => {
+  const user = req.user;
+
+  if (!user) {
+    return res.status(401).json({ message: "Tidak ada user di request" });
+  }
+
+  res.json({
+    id: user.id || null,
+    name: user.name,
+    role: user.role,
+  });
 };

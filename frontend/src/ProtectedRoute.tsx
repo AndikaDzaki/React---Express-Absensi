@@ -1,20 +1,17 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
-interface ProtectedRouteProps {
-  children: ReactNode;
-  role: string;
-}
+function ProtectedRoute({ children, role }: { children: ReactNode; role: string }) {
+  const location = useLocation();
 
-function ProtectedRoute({ children, role }: ProtectedRouteProps) {
   const isLoggedIn = sessionStorage.getItem("isLoggedIn") === "true";
   const userRole = sessionStorage.getItem("userRole");
 
   if (!isLoggedIn || userRole !== role) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  return children;
+  return <>{children}</>;
 }
 
 export default ProtectedRoute;

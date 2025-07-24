@@ -72,30 +72,41 @@ export const deleteKelas = async (req, res) => {
   }
 };
 
-export const getKelasByGuru = async (req, res) => {
-  try{
-  const idGuru = req.user.id; 
-  const kelas = await prisma.kelas.findFirst({
-    where: { id_guru: idGuru },
-    include : {
-      guru: true
-    }
-  });
-  if (!kelas) {
-    return res.status(404).json({ message: "Guru belum punya kelas" });
-  }
-   res.json({
-    id: kelas.id,
-    nama_kelas : kelas.nama_kelas,
-    jumlah_siswa: await prisma.siswa.count({
-      where: { id_kelas: kelas.id}
-    }),
-    namaGuru: kelas.guru?.namaGuru || "-"
-   });
 
+
+export const getKelasByGuru = async (req, res) => {
+
+  const idGuru = parseInt(req.query.id);
+
+  if (!idGuru) {
+    return res.status(400).json({ message: "ID guru " });
+  }
+
+  try {
+    const kelas = await prisma.kelas.findFirst({
+      where: { id_guru: idGuru },
+      include: {
+        guru: true,
+      },
+    });
+
+    if (!kelas) {
+      return res.status(404).json({ message: "Guru belum punya kelas" });
+    }
+
+    const jumlahSiswa = await prisma.siswa.count({
+      where: { id_kelas: kelas.id },
+    });
+
+    return res.json({
+      id: kelas.id,
+      nama_kelas: kelas.nama_kelas,
+      jumlah_siswa: jumlahSiswa,
+      namaGuru: kelas.guru?.namaGuru || "-",
+    });
   } catch (error) {
     console.error("Gagal mengambil kelas:", error);
-    res.status(500).json({ message: "Terjadi kesalahan saat mengambil kelas" });
+    return res.status(500).json({ message: "Terjadi kesalahan saat mengambil kelas" });
   }
-  
 };
+

@@ -1,27 +1,23 @@
 import express from "express";
 import { verifyToken } from "../middleware/authMiddleware.js";
+import { getMe } from "../controller/auth-controller.js";
 
-const route = express.Router();
+const router = express.Router();
 
-route.get("/dashboard", verifyToken, (req, res) => {
+
+router.get("/admin/me", verifyToken, (req, res) => {
   if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Hanya admin yang dapat mengakses dashboard ini" });
+    return res.status(403).json({ message: "Akses ditolak. Bukan admin." });
   }
-
-  res.json({
-    message: ` ${req.user.name}`,
-    role: req.user.role,
-  });
+  return getMe(req, res);
 });
 
-route.get("/user/dashboard", verifyToken, (req, res) => {
+
+router.get("/guru/me", verifyToken, (req, res) => {
   if (req.user.role !== "user") {
-    return res.status(403).json({ message: "Hanya user yang dapat mengakses halaman ini" });
+    return res.status(403).json({ message: "Akses ditolak. Bukan guru." });
   }
-
-  res.json({
-    message: ` ${req.user.name}`,
-    role: req.user.role,
-  });
+  return getMe(req, res);
 });
-export default route;
+
+export default router;

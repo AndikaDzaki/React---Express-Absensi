@@ -12,3 +12,5 @@ export const updateJadwal = (id: number, data: JadwalForm) => axios.put(`${API_U
 export const deleteJadwal = (id: number) => axios.delete(`${API_URL}/jadwal/${id}`);
 
 export const generateJadwal = () => axios.get(`${API_URL}/jadwal/generate-harian`);
+
+export const getJadwalHariIni = () => axios.get(`${API_URL}/hari-ini`, { withCredentials: true });

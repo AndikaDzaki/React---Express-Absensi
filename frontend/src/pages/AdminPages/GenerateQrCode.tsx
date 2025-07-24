@@ -28,10 +28,14 @@ export default function GenerateQr() {
   const [qrMap, setQrMap] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
 
+  
+  const isJwt = (token: string) => token.split(".").length === 3;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [resSiswa, resKelas] = await Promise.all([getSiswa(), getKelas()]);
+
         const siswaData = resSiswa.data;
         const kelasData = resKelas.data;
 
@@ -42,7 +46,12 @@ export default function GenerateQr() {
           siswaData.map(async (siswa) => {
             try {
               const res = await getQrToken(siswa.id);
-              return { id: siswa.id, token: res.data.token };
+              const token = res.data.token;
+              if (!isJwt(token)) {
+                console.warn(`Token bukan JWT untuk siswa ID ${siswa.id}:`, token);
+                return { id: siswa.id, token: "" };
+              }
+              return { id: siswa.id, token };
             } catch (err) {
               console.error(`Gagal ambil token untuk siswa ID ${siswa.id}`, err);
               return { id: siswa.id, token: "" };
@@ -76,8 +85,9 @@ export default function GenerateQr() {
 
     const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
     const link = document.createElement("a");
+    const safeNama = nama.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_]/g, "");
     link.href = pngUrl;
-    link.download = `${nama}-qr.png`;
+    link.download = `${safeNama}-qr.png`;
     link.click();
   };
 
@@ -94,7 +104,10 @@ export default function GenerateQr() {
       </div>
 
       {loading ? (
-        <p className="text-center">Memuat data siswa dan QR token...</p>
+        <div className="text-center py-10 text-gray-500">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-800 mx-auto mb-2" />
+          Memuat data siswa dan QR token...
+        </div>
       ) : filteredData.length === 0 ? (
         <p className="text-center">Belum ada data yang cocok.</p>
       ) : (
@@ -111,7 +124,8 @@ export default function GenerateQr() {
           <TableBody>
             {filteredData.map((siswa) => {
               const namaKelas = getNamaKelas(siswa.id_kelas);
-              const qrValue = qrMap[siswa.id];
+              const token = qrMap[siswa.id];
+              const qrValue = token;
 
               return (
                 <TableRow key={siswa.id}>

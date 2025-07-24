@@ -1,98 +1,142 @@
 import { useState, useEffect } from "react";
-import { notifikasiSchema, NotifikasiForm } from "@/schema/notifikasi-admin";
-import { z } from "zod";
+import {
+  getNotifikasiAdmin,
+  markNotifikasiAsRead,
+  deleteNotifikasi,
+  NotifikasiItem,
+} from "@/lib/notifikasi-api";
+import { io } from "socket.io-client";
 
-
-interface NotifikasiItem extends NotifikasiForm {
-  id: number;
-}
+const socket = io("http://localhost:8800", {
+  withCredentials: true,
+  transports: ["websocket"],
+});
 
 export default function Notifikasi() {
   const [notifications, setNotifications] = useState<NotifikasiItem[]>([]);
 
   useEffect(() => {
-    
-    const dummyData = [
-      {
-        id: 1,
-        message: "Absensi hari ini belum lengkap untuk beberapa siswa.",
-        category: "Absensi",
-        status: "unread",
-        date: "2025-04-28",
-      },
-      {
-        id: 2,
-        message: "Pengumuman: Ujian Tengah Semester besok.",
-        category: "Pengumuman",
-        status: "read",
-        date: "2025-04-28",
-      },
-      {
-        id: 3,
-        message: "Siswa X telah mengajukan izin sakit hari ini.",
-        category: "Absensi",
-        status: "read",
-        date: "2025-04-27",
-      },
-    ];
+    const fetchNotifikasi = async () => {
+      try {
+        const data = await getNotifikasiAdmin();
+        setNotifications(data);
+      } catch (error) {
+        console.error("Gagal mengambil data notifikasi:", error);
+      }
+    };
 
-    
-    const result = z.array(notifikasiSchema).safeParse(dummyData);
-    if (result.success) {
-      setNotifications(result.data as NotifikasiItem[]);
-    } else {
-      console.error("Data notifikasi tidak valid:", result.error.format());
-    }
+    fetchNotifikasi();
+
+    socket.on("notifikasiBaru", (notif: NotifikasiItem) => {
+      setNotifications((prev) => [notif, ...prev]);
+    });
+
+    return () => {
+      socket.off("notifikasiBaru");
+    };
   }, []);
 
   const markAllAsRead = () => {
+    notifications.forEach((notif) => {
+      if (!notif.dibaca) {
+        markNotifikasiAsRead(notif.id).catch(console.error);
+      }
+    });
+
     setNotifications((prev) =>
-      prev.map((notif) => ({ ...notif, status: "read" }))
+      prev.map((notif) => ({ ...notif, dibaca: true }))
     );
   };
 
   const clearAll = () => {
+    notifications.forEach((notif) => {
+      deleteNotifikasi(notif.id).catch(console.error);
+    });
+
     setNotifications([]);
   };
 
-  return (
-    <div className="p-4">
-      <h2 className="text-xl font-semibold mb-4">Notifikasi Admin</h2>
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      await markNotifikasiAsRead(id);
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === id ? { ...notif, dibaca: true } : notif
+        )
+      );
+    } catch (error) {
+      console.error("Gagal tandai notifikasi:", error);
+    }
+  };
 
-      <div className="flex justify-between mb-4">
-        <button className="bg-blue-500 text-white px-4 py-2 rounded">Filter</button>
-        <div>
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteNotifikasi(id);
+      setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+    } catch (error) {
+      console.error("Gagal hapus notifikasi:", error);
+    }
+  };
+
+  return (
+    <div className="p-4 max-w-4xl mx-auto w-full">
+      <h2 className="text-2xl font-bold mb-6 text-center md:text-left"></h2>
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+        <button className="bg-blue-500 text-white px-4 py-2 rounded w-full md:w-auto">
+          Filter
+        </button>
+        <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
           <button
             onClick={markAllAsRead}
-            className="bg-green-500 text-white px-4 py-2 rounded mr-2"
+            className="bg-green-500 text-white px-4 py-2 rounded w-full md:w-auto"
           >
             Tandai Semua Sudah Dibaca
           </button>
           <button
             onClick={clearAll}
-            className="bg-red-500 text-white px-4 py-2 rounded"
+            className="bg-red-500 text-white px-4 py-2 rounded w-full md:w-auto"
           >
             Hapus Semua
           </button>
         </div>
       </div>
 
-      <div>
-        {notifications.map((notif) => (
-          <div
-            key={notif.id}
-            className={`p-4 mb-2 rounded border ${
-              notif.status === "unread" ? "bg-yellow-100" : "bg-gray-100"
-            }`}
-          >
-            <p className="font-bold">{notif.category}</p>
-            <p>{notif.message}</p>
-            <div className="text-sm text-gray-500">
-              {notif.date} |{" "}
-              <button className="text-blue-500 hover:underline">Lihat Detail</button>
+      <div className="space-y-3">
+        {notifications.length === 0 ? (
+          <p className="text-gray-500 text-center">Tidak ada notifikasi.</p>
+        ) : (
+          notifications.map((notif) => (
+            <div
+              key={notif.id}
+              className={`p-4 rounded border ${
+                !notif.dibaca ? "bg-yellow-100" : "bg-gray-100"
+              } shadow-sm`}
+            >
+              <p className="font-semibold text-sm text-gray-700">{notif.jenis || "Tanpa Jenis"}</p>
+              <p className="text-base text-gray-800">{notif.pesan}</p>
+              <div className="text-sm text-gray-500 flex flex-col sm:flex-row sm:justify-between mt-2">
+                <span>{notif.tanggal ? new Date(notif.tanggal).toLocaleString() : "Tanggal tidak tersedia"}</span>
+                <div className="space-x-2 mt-2 sm:mt-0 sm:text-right">
+                  {!notif.dibaca && (
+                    <button
+                      onClick={() => handleMarkAsRead(notif.id)}
+                      className="text-green-600 hover:underline"
+                    >
+                      Tandai Dibaca
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(notif.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

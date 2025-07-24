@@ -182,7 +182,7 @@ export default function Absensi() {
   }
 
   return (
-    <div className="p-4 max-w-6xl mx-auto">
+    <div className="bg-white p-5 rounded-lg shadow-md mt-6 ml-10 mr-10">
       <h1 className="text-2xl font-bold mb-4">Absensi per Kelas</h1>
 
       <Table>

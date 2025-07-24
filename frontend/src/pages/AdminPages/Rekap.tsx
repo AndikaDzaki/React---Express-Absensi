@@ -27,32 +27,21 @@ type KelasItem = {
   nama_kelas: string;
 };
 
-type SemesterItem = {
-  id: number;
-  tahun_ajaran_id: number;
-  semester: string;
-  status: "Aktif" | "Tidak Aktif";
-  startDate: string;
-  endDate: string;
-};
-
 export default function Rekap() {
   const [data, setData] = useState<AbsensiItem[]>([]);
   const [siswaList, setSiswaList] = useState<SiswaItem[]>([]);
   const [kelasList, setKelasList] = useState<KelasItem[]>([]);
-  const [semesterList, setSemesterList] = useState<SemesterItem[]>([]);
+
   const [selectedKelas, setSelectedKelas] = useState<number | "all">("all");
-  const [selectedSemesterId, setSelectedSemesterId] = useState<number | "all">("all");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [absensiRes, siswaRes, kelasRes, semesterRes] = await Promise.all([getAbsensi(), getSiswa(), getKelas(), getSemester()]);
+        const [absensiRes, siswaRes, kelasRes] = await Promise.all([getAbsensi(), getSiswa(), getKelas(), getSemester()]);
 
         setData(absensiRes.data);
         setSiswaList(siswaRes.data);
         setKelasList(kelasRes.data);
-        setSemesterList(semesterRes.data);
       } catch (error) {
         console.error("Gagal memuat data rekap:", error);
       }
@@ -64,16 +53,12 @@ export default function Rekap() {
   const getNamaSiswa = (id: number) => siswaList.find((s) => s.id === id)?.nama || "–";
   const getNamaKelas = (id: number) => kelasList.find((k) => k.id === id)?.nama_kelas || "–";
 
-  const selectedSemester = semesterList.find((s) => s.id === selectedSemesterId);
-
   const filteredData = useMemo(() => {
     return data.filter((item) => {
-      const tanggal = new Date(item.tanggal);
-      const semesterFilter = selectedSemesterId === "all" ? true : tanggal >= new Date(selectedSemester?.startDate || "") && tanggal <= new Date(selectedSemester?.endDate || "");
       const kelasFilter = selectedKelas === "all" ? true : item.kelas_id === selectedKelas;
-      return semesterFilter && kelasFilter;
+      return kelasFilter;
     });
-  }, [data, selectedKelas, selectedSemester, selectedSemesterId]);
+  }, [data, selectedKelas]);
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Rekap Absensi");
@@ -135,11 +120,11 @@ export default function Rekap() {
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    saveAs(blob, `rekap_semester_${selectedSemesterId}_${selectedKelas}.xlsx`);
+    saveAs(blob, `rekap_semester_${selectedKelas}.xlsx`);
   };
 
   return (
-    <div className="p-4 max-w-6xl mx-auto">
+    <div className="bg-white p-5 rounded-lg shadow-md mt-6 ml-10 mr-10">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
         <h2 className="text-xl font-semibold">Rekap Absensi</h2>
 
@@ -149,15 +134,6 @@ export default function Rekap() {
             {kelasList.map((k) => (
               <option key={k.id} value={k.id}>
                 {k.nama_kelas}
-              </option>
-            ))}
-          </select>
-
-          <select value={selectedSemesterId} onChange={(e) => setSelectedSemesterId(e.target.value === "all" ? "all" : Number(e.target.value))} className="border rounded px-3 py-2">
-            <option value="all">Semua Semester</option>
-            {semesterList.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.semester} ({new Date(s.startDate).toLocaleDateString("id-ID")} - {new Date(s.endDate).toLocaleDateString("id-ID")})
               </option>
             ))}
           </select>

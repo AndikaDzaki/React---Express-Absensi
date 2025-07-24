@@ -12,8 +12,8 @@ export const updateKelas = (id: number, data: KelasFormData) => axios.put(`${API
 export const deleteKelas = (id: number) => axios.delete(`${API_URL}/kelas/${id}`);
 
 
-export async function getKelasByGuru() {
-  return await axios.get(`${API_URL}/kelas-by-guru`, {
-    withCredentials: true, 
+export const getKelasByGuru = (idGuru: number) =>
+  axios.get(`${API_URL}/kelas-by-guru?id=${idGuru}`, {
+    withCredentials: true,
   });
-}
+

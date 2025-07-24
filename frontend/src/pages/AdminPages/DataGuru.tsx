@@ -78,7 +78,7 @@ function DataGuru() {
   };
 
   const handleEdit = (item: GuruItem) => {
-    form.reset({ ...item, password: "" }); // Kosongkan password saat edit
+    form.reset({ ...item, password: "" }); 
     setEditId(item.id);
     setEditMode(true);
     setIsOpen(true);
