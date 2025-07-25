@@ -168,8 +168,11 @@ const HalamanAbsensi = () => {
       toast.success("Absensi berhasil disimpan");
       setIsSelesai(true);
       setTimeout(() => navigate("/user/absensiuser"));
-    } catch (error) {
-      if (!navigator.onLine) {
+    } catch (error: any) {
+      if (error?.response?.status === 400 && error?.response?.data?.message?.includes("sudah dilakukan")) {
+        toast.error("Absensi sudah dilakukan hari ini.");
+        setIsSelesai(true); // disable tombol simpan
+      } else if (!navigator.onLine) {
         for (const item of dataToUpdate) {
           const offlineData = {
             id: `${kelasId}-${item.id_siswa}`,
@@ -234,7 +237,6 @@ const HalamanAbsensi = () => {
           })}
         </TableBody>
       </Table>
-
       <Button className="mt-4" onClick={handleSimpan} disabled={isSelesai}>
         {isSelesai ? "Absensi Selesai" : "Simpan Absensi"}
       </Button>

@@ -7,7 +7,7 @@ function getCurrentJakartaTime() {
 }
 
 cron.schedule(
-  "0 8 * * *",
+  "0 7 * * *",
   async () => {
     const now = getCurrentJakartaTime();
     console.log(`[CRON] generateNotifikasiService dijalankan pada ${now}`);

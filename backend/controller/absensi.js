@@ -274,7 +274,7 @@ export const updateBanyakAbsensi = async (req, res) => {
   }
 
   try {
- 
+    // Validasi struktur data absensi
     for (const item of absensiArray) {
       if (typeof item.id_siswa !== "number" || !item.tanggal || typeof item.status !== "string") {
         return res.status(400).json({
@@ -284,6 +284,31 @@ export const updateBanyakAbsensi = async (req, res) => {
       }
     }
 
+    // Ambil kelas_id dari siswa pertama
+    const siswaPertama = await prisma.siswa.findUnique({
+      where: { id: absensiArray[0].id_siswa },
+    });
+    if (!siswaPertama) {
+      return res.status(400).json({ message: "Siswa tidak ditemukan" });
+    }
+
+    const kelasId = siswaPertama.id_kelas;
+    const tanggalAbsensi = new Date(absensiArray[0].tanggal);
+
+    // Cek apakah absensi sudah dilakukan hari ini untuk kelas ini
+    const sudahAbsen = await prisma.absensi.findFirst({
+      where: {
+        kelas_id: kelasId,
+        tanggal: tanggalAbsensi,
+        NOT: { status: "Belum" },
+      },
+    });
+
+    if (sudahAbsen) {
+      return res.status(400).json({ message: "Absensi untuk kelas ini sudah dilakukan hari ini" });
+    }
+
+    // Update absensi
     const updatePromises = absensiArray.map((item) =>
       prisma.absensi.updateMany({
         where: {
@@ -295,39 +320,40 @@ export const updateBanyakAbsensi = async (req, res) => {
         },
       })
     );
-
     await Promise.all(updatePromises);
 
+    // Kirim WhatsApp
     for (const item of absensiArray) {
-      try{
+      try {
         const siswa = await prisma.siswa.findUnique({
-          where: {id: item.id_siswa},
+          where: { id: item.id_siswa },
         });
-        
+
         if (!siswa || !siswa.noTelp) continue;
 
         const nomorOrtu = siswa.noTelp.replace(/\D/g, "");
         if (!nomorOrtu.startsWith("08")) continue;
 
         const pesan = `Anak Anda, ${siswa.nama}, telah melakukan absensi hari ini dengan status: ${item.status}.`;
-        
-        await kirimWhatsapp(nomorOrtu, pesan)
-      }catch (err){
-        console.error(`Gagal kirim WA ke siswa ID ${item.id_siswa}:`, err)
+        await kirimWhatsapp(nomorOrtu, pesan);
+      } catch (err) {
+        console.error(`Gagal kirim WA ke siswa ID ${item.id_siswa}:`, err);
       }
     }
 
-    const io = req.app.get("io");
+    // Emit event absensi
     io.emit("absensi-batch-updated", absensiArray);
 
-   
+    // Kirim notifikasi admin
     const guruId = req.user?.id;
-
     if (!guruId) {
       return res.status(401).json({ message: "User tidak terautentikasi" });
     }
 
-    const [guru, kelas] = await Promise.all([prisma.guru.findUnique({ where: { id: guruId } }), prisma.kelas.findFirst({ where: { id_guru: guruId } })]);
+    const [guru, kelas] = await Promise.all([
+      prisma.guru.findUnique({ where: { id: guruId } }),
+      prisma.kelas.findFirst({ where: { id_guru: guruId } }),
+    ]);
 
     if (!guru || !kelas) {
       return res.status(404).json({ message: "Data guru atau kelas tidak ditemukan" });
@@ -346,7 +372,7 @@ export const updateBanyakAbsensi = async (req, res) => {
     });
 
     io.emit("notifikasiBaru", {
-      pesan: message, 
+      pesan: message,
       jenis: "absensi",
       tanggal: date.toISOString(),
       dibaca: false,
